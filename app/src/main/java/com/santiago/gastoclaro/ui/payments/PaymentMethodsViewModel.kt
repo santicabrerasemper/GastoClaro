@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.santiago.gastoclaro.data.local.entity.MovementType
 import com.santiago.gastoclaro.data.local.entity.PaymentMethodEntity
+import com.santiago.gastoclaro.data.local.model.MovementRow
 import com.santiago.gastoclaro.data.preferences.ActiveProfileStore
 import com.santiago.gastoclaro.domain.repository.FinanceRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -25,7 +26,8 @@ data class CardStatementUi(
     val movementCount: Int,
     val periodStart: LocalDate,
     val periodEnd: LocalDate,
-    val dueDate: LocalDate?
+    val dueDate: LocalDate?,
+    val movements: List<MovementRow>
 )
 
 data class PaymentMethodsUiState(
@@ -77,7 +79,8 @@ class PaymentMethodsViewModel @Inject constructor(
                                 dueDate = method.dueDay?.let { day ->
                                     val duePeriod = period.plusMonths(1)
                                     duePeriod.atDay(day.coerceIn(1, duePeriod.lengthOfMonth()))
-                                }
+                                },
+                                movements = rows.sortedByDescending { it.occurredEpochDay }
                             )
                         }
                     PaymentMethodsUiState(profileId, period, methods, statements)

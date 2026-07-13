@@ -1,5 +1,6 @@
 package com.santiago.gastoclaro.ui.payments
 
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -8,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
@@ -17,12 +19,15 @@ import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Archive
 import androidx.compose.material.icons.rounded.CreditCard
 import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.ExpandLess
+import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.Payments
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -30,6 +35,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -39,16 +45,24 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.santiago.gastoclaro.core.util.formatCurrency
 import com.santiago.gastoclaro.core.util.formatDate
+import com.santiago.gastoclaro.core.util.formatUsdCurrency
+import com.santiago.gastoclaro.data.local.entity.MovementType
 import com.santiago.gastoclaro.data.local.entity.PaymentMethodEntity
+import com.santiago.gastoclaro.data.local.model.MovementRow
 import com.santiago.gastoclaro.ui.components.EmptyState
 import com.santiago.gastoclaro.ui.components.MonthSelector
+import java.time.LocalDate
 
 @Composable
 fun PaymentMethodsScreen(
@@ -58,6 +72,7 @@ fun PaymentMethodsScreen(
     val snackbar = remember { SnackbarHostState() }
     var showDialog by rememberSaveable { mutableStateOf(false) }
     var editing by remember { mutableStateOf<PaymentMethodEntity?>(null) }
+    var expandedStatementId by rememberSaveable { mutableStateOf<Long?>(null) }
 
     LaunchedEffect(Unit) {
         viewModel.messages.collect { snackbar.showSnackbar(it) }
@@ -100,6 +115,10 @@ fun PaymentMethodsScreen(
                     PaymentMethodCard(
                         method = method,
                         statement = state.statements.firstOrNull { it.paymentMethodId == method.id },
+                        expanded = expandedStatementId == method.id,
+                        onToggleStatement = {
+                            expandedStatementId = if (expandedStatementId == method.id) null else method.id
+                        },
                         onEdit = {
                             editing = method
                             showDialog = true
@@ -127,6 +146,8 @@ fun PaymentMethodsScreen(
 private fun PaymentMethodCard(
     method: PaymentMethodEntity,
     statement: CardStatementUi?,
+    expanded: Boolean,
+    onToggleStatement: () -> Unit,
     onEdit: () -> Unit,
     onArchive: () -> Unit
 ) {
@@ -167,8 +188,84 @@ private fun PaymentMethodCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
+                TextButton(onClick = onToggleStatement) {
+                    Text(if (expanded) "Ocultar resumen" else "Ver resumen")
+                    Icon(
+                        if (expanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
+                        contentDescription = null
+                    )
+                }
+                if (expanded) {
+                    CardStatementMovements(statement)
+                }
             }
         }
+    }
+}
+
+@Composable
+private fun CardStatementMovements(statement: CardStatementUi) {
+    Spacer(Modifier.height(4.dp))
+    HorizontalDivider()
+    Spacer(Modifier.height(8.dp))
+    if (statement.movements.isEmpty()) {
+        Text(
+            "Sin consumos en este resumen.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    } else {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            statement.movements.forEach { movement ->
+                StatementMovementRow(movement)
+            }
+        }
+    }
+}
+
+@Composable
+private fun StatementMovementRow(movement: MovementRow) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Surface(
+            modifier = Modifier.size(34.dp),
+            shape = CircleShape,
+            color = Color(movement.categoryColorArgb).copy(alpha = 0.18f)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
+                Text(movement.categoryEmoji)
+            }
+        }
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                movement.note.ifBlank { movement.categoryName },
+                style = MaterialTheme.typography.bodyMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                listOfNotNull(
+                    movement.categoryName,
+                    movement.subcategoryName.takeIf { it.isNotBlank() },
+                    if (movement.currency == "USD") movement.currencyAmountCents.formatUsdCurrency() else null,
+                    if (movement.installmentCount > 1) "Cuota ${movement.installmentIndex}/${movement.installmentCount}" else null,
+                    if (movement.isRecurringMonthly) "Mensual" else null,
+                    LocalDate.ofEpochDay(movement.occurredEpochDay).formatDate()
+                ).joinToString(" · "),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+        Text(
+            (if (movement.type == MovementType.EXPENSE) "-" else "+") + movement.amountCents.formatCurrency(),
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold
+        )
     }
 }
 
