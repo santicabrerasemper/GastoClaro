@@ -271,6 +271,35 @@ object DatabaseModule {
         }
     }
 
+    private val MIGRATION_9_10 = object : Migration(9, 10) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE movements ADD COLUMN subcategoryName TEXT NOT NULL DEFAULT ''")
+            db.execSQL(
+                """
+                INSERT INTO categories (profileId, name, emoji, colorArgb, type, isArchived)
+                SELECT profiles.id, 'Actividad fisica', '🏋️', -1023342, 'EXPENSE', 0
+                FROM profiles
+                WHERE NOT EXISTS (
+                    SELECT 1
+                    FROM categories
+                    WHERE categories.profileId = profiles.id
+                      AND categories.name = 'Actividad fisica'
+                      AND categories.type = 'EXPENSE'
+                )
+                """.trimIndent()
+            )
+        }
+    }
+
+    private val MIGRATION_10_11 = object : Migration(10, 11) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE movements ADD COLUMN currency TEXT NOT NULL DEFAULT 'ARS'")
+            db.execSQL("ALTER TABLE movements ADD COLUMN currencyAmountCents INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("ALTER TABLE movements ADD COLUMN exchangeRateCents INTEGER")
+            db.execSQL("UPDATE movements SET currencyAmountCents = amountCents WHERE currencyAmountCents = 0")
+        }
+    }
+
     @Provides
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): AppDatabase =
@@ -286,6 +315,8 @@ object DatabaseModule {
             MIGRATION_5_6,
             MIGRATION_6_7,
             MIGRATION_7_8,
-            MIGRATION_8_9
+            MIGRATION_8_9,
+            MIGRATION_9_10,
+            MIGRATION_10_11
         ).build()
 }

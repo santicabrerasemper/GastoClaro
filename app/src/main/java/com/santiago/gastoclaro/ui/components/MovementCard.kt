@@ -72,6 +72,7 @@ fun MovementCard(
                 Text(
                     listOfNotNull(
                         movement.categoryName,
+                        movement.subcategoryName.takeIf { it.isNotBlank() },
                         paymentLabel,
                         if (movement.installmentCount > 1) "Cuota ${movement.installmentIndex}/${movement.installmentCount}" else null,
                         LocalDate.ofEpochDay(movement.occurredEpochDay).formatDate()

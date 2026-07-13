@@ -54,6 +54,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.santiago.gastoclaro.core.util.formatDate
+import com.santiago.gastoclaro.core.util.formatCurrency
 import com.santiago.gastoclaro.data.local.entity.MovementType
 import com.santiago.gastoclaro.data.local.entity.PaymentMethodEntity
 import java.time.Instant
@@ -70,6 +71,7 @@ fun MovementFormScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
     var categoryExpanded by rememberSaveable { mutableStateOf(false) }
+    var subcategoryExpanded by rememberSaveable { mutableStateOf(false) }
     var paymentExpanded by rememberSaveable { mutableStateOf(false) }
     var showDatePicker by rememberSaveable { mutableStateOf(false) }
 
@@ -126,11 +128,40 @@ fun MovementFormScreen(
                     value = state.amountText,
                     onValueChange = viewModel::setAmount,
                     label = { Text("Monto") },
-                    prefix = { Text("$") },
+                    prefix = { Text(if (state.currency == "USD") "USD" else "$") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    FilterChip(
+                        selected = state.currency == "ARS",
+                        onClick = { viewModel.setCurrency("ARS") },
+                        label = { Text("Pesos") }
+                    )
+                    FilterChip(
+                        selected = state.currency == "USD",
+                        onClick = { viewModel.setCurrency("USD") },
+                        label = { Text("Dólares") }
+                    )
+                }
+                if (state.currency == "USD") {
+                    OutlinedTextField(
+                        value = state.exchangeRateText,
+                        onValueChange = viewModel::setExchangeRate,
+                        label = { Text("Cotización") },
+                        prefix = { Text("$") },
+                        supportingText = {
+                            Text(
+                                state.convertedAmountCents?.let { "Impacto estimado: ${it.formatCurrency()}" }
+                                    ?: "Valor del dólar que querés usar para convertir a pesos"
+                            )
+                        },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
                 Box(modifier = Modifier.fillMaxWidth()) {
                     OutlinedButton(
                         onClick = { categoryExpanded = true },
@@ -150,6 +181,32 @@ fun MovementFormScreen(
                                 text = { Text("${category.emoji} ${category.name}") },
                                 onClick = { viewModel.setCategory(category.id); categoryExpanded = false }
                             )
+                        }
+                    }
+                }
+                if (state.subcategories.isNotEmpty()) {
+                    Box(modifier = Modifier.fillMaxWidth()) {
+                        OutlinedButton(
+                            onClick = { subcategoryExpanded = true },
+                            modifier = Modifier.fillMaxWidth().height(56.dp)
+                        ) {
+                            Text(
+                                state.selectedSubcategoryName.ifBlank { "Sin subcategoría" },
+                                modifier = Modifier.weight(1f)
+                            )
+                            Icon(Icons.Rounded.KeyboardArrowDown, contentDescription = null)
+                        }
+                        DropdownMenu(expanded = subcategoryExpanded, onDismissRequest = { subcategoryExpanded = false }) {
+                            DropdownMenuItem(
+                                text = { Text("Sin subcategoría") },
+                                onClick = { viewModel.setSubcategory(""); subcategoryExpanded = false }
+                            )
+                            state.subcategories.forEach { subcategory ->
+                                DropdownMenuItem(
+                                    text = { Text(subcategory) },
+                                    onClick = { viewModel.setSubcategory(subcategory); subcategoryExpanded = false }
+                                )
+                            }
                         }
                     }
                 }

@@ -84,6 +84,11 @@ class FinanceRepositoryImpl @Inject constructor(
         if (draft.installmentCount > 1 && paymentMethod?.kind != "CREDIT_CARD") {
             throw DomainException("Las cuotas requieren una tarjeta de crédito")
         }
+        val normalizedCurrency = draft.currency.uppercase().takeIf { it == "ARS" || it == "USD" }
+            ?: throw DomainException("Elegí una moneda válida")
+        if (normalizedCurrency == "USD" && (draft.exchangeRateCents == null || draft.exchangeRateCents <= 0)) {
+            throw DomainException("Ingresá la cotización para convertir USD a pesos")
+        }
 
         val now = System.currentTimeMillis()
         budgetDao.insertIgnore(
@@ -158,7 +163,11 @@ class FinanceRepositoryImpl @Inject constructor(
             }
             val updated = previous.copy(
                 categoryId = draft.categoryId,
+                subcategoryName = draft.subcategoryName.trim(),
                 paymentMethodId = draft.paymentMethodId,
+                currency = normalizedCurrency,
+                currencyAmountCents = draft.currencyAmountCents,
+                exchangeRateCents = draft.exchangeRateCents.takeIf { normalizedCurrency == "USD" },
                 type = draft.type,
                 amountCents = draft.amountCents,
                 monthlyImpactCents = draft.monthlyImpactCents,
@@ -348,6 +357,8 @@ class FinanceRepositoryImpl @Inject constructor(
         if (draft.installmentCount > 1 && draft.annualizedMonths > 1) {
             throw DomainException("Elegí cuotas o anualización, no ambas")
         }
+        if (draft.currencyAmountCents <= 0) throw DomainException("Ingresá un monto mayor a cero")
+        if (draft.subcategoryName.length > 60) throw DomainException("La subcategoría puede tener hasta 60 caracteres")
         if (draft.note.length > 120) throw DomainException("La nota puede tener hasta 120 caracteres")
     }
 
@@ -364,7 +375,11 @@ class FinanceRepositoryImpl @Inject constructor(
     ): MovementEntity = MovementEntity(
         profileId = profileId,
         categoryId = categoryId,
+        subcategoryName = subcategoryName.trim(),
         paymentMethodId = paymentMethodId,
+        currency = currency.uppercase(),
+        currencyAmountCents = currencyAmountCents,
+        exchangeRateCents = exchangeRateCents.takeIf { currency.uppercase() == "USD" },
         type = type,
         amountCents = amountCents,
         monthlyImpactCents = monthlyImpactCents,

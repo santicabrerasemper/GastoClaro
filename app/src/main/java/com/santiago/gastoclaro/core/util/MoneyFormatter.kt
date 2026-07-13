@@ -10,6 +10,13 @@ private val argentinaLocale = Locale.forLanguageTag("es-AR")
 fun Long.formatCurrency(): String = NumberFormat.getCurrencyInstance(argentinaLocale)
     .format(BigDecimal.valueOf(this, 2))
 
+fun Long.formatUsdCurrency(): String = "USD " + NumberFormat.getNumberInstance(argentinaLocale)
+    .apply {
+        minimumFractionDigits = 2
+        maximumFractionDigits = 2
+    }
+    .format(BigDecimal.valueOf(this, 2))
+
 fun Long.formatPlainAmount(): String = BigDecimal(this)
     .divide(BigDecimal(100))
     .setScale(2, RoundingMode.UNNECESSARY)
