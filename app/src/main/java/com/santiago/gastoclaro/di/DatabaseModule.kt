@@ -224,6 +224,53 @@ object DatabaseModule {
         }
     }
 
+    private val MIGRATION_7_8 = object : Migration(7, 8) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                INSERT INTO categories (profileId, name, emoji, colorArgb, type, isArchived)
+                SELECT profiles.id, 'Educacion', '🎓', -6982195, 'EXPENSE', 0
+                FROM profiles
+                WHERE NOT EXISTS (
+                    SELECT 1
+                    FROM categories
+                    WHERE categories.profileId = profiles.id
+                      AND categories.name = 'Educacion'
+                      AND categories.type = 'EXPENSE'
+                )
+                """.trimIndent()
+            )
+            db.execSQL(
+                """
+                INSERT INTO categories (profileId, name, emoji, colorArgb, type, isArchived)
+                SELECT profiles.id, 'Suscripciones', '🔁', -30107, 'EXPENSE', 0
+                FROM profiles
+                WHERE NOT EXISTS (
+                    SELECT 1
+                    FROM categories
+                    WHERE categories.profileId = profiles.id
+                      AND categories.name = 'Suscripciones'
+                      AND categories.type = 'EXPENSE'
+                )
+                """.trimIndent()
+            )
+        }
+    }
+
+    private val MIGRATION_8_9 = object : Migration(8, 9) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                UPDATE categories
+                SET colorArgb = -6982195
+                WHERE name = 'Educacion'
+                  AND type = 'EXPENSE'
+                  AND colorArgb = -11549705
+                """.trimIndent()
+            )
+        }
+    }
+
     @Provides
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): AppDatabase =
@@ -231,5 +278,14 @@ object DatabaseModule {
             context,
             AppDatabase::class.java,
             "gasto_claro.db"
-        ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7).build()
+        ).addMigrations(
+            MIGRATION_1_2,
+            MIGRATION_2_3,
+            MIGRATION_3_4,
+            MIGRATION_4_5,
+            MIGRATION_5_6,
+            MIGRATION_6_7,
+            MIGRATION_7_8,
+            MIGRATION_8_9
+        ).build()
 }

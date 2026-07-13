@@ -27,7 +27,7 @@ import com.santiago.gastoclaro.data.local.entity.ProfileEntity
         MonthlyClosureEntity::class,
         MonthlyCategorySnapshotEntity::class
     ],
-    version = 7,
+    version = 9,
     exportSchema = true
 )
 @TypeConverters(Converters::class)

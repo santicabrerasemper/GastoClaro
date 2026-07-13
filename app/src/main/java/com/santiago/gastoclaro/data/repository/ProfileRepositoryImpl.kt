@@ -76,6 +76,8 @@ class ProfileRepositoryImpl @Inject constructor(
         CategoryEntity(profileId = profileId, name = "Transporte", emoji = "🚗", colorArgb = 0xFF64B5F6.toInt(), type = MovementType.EXPENSE),
         CategoryEntity(profileId = profileId, name = "Hogar", emoji = "🏠", colorArgb = 0xFFFFB74D.toInt(), type = MovementType.EXPENSE),
         CategoryEntity(profileId = profileId, name = "Salud", emoji = "💊", colorArgb = 0xFF81C784.toInt(), type = MovementType.EXPENSE),
+        CategoryEntity(profileId = profileId, name = "Educacion", emoji = "🎓", colorArgb = 0xFF9575CD.toInt(), type = MovementType.EXPENSE),
+        CategoryEntity(profileId = profileId, name = "Suscripciones", emoji = "🔁", colorArgb = 0xFFFF8A65.toInt(), type = MovementType.EXPENSE),
         CategoryEntity(profileId = profileId, name = "Ocio", emoji = "🎮", colorArgb = 0xFFBA68C8.toInt(), type = MovementType.EXPENSE),
         CategoryEntity(profileId = profileId, name = "Otros", emoji = "🧾", colorArgb = 0xFF90A4AE.toInt(), type = MovementType.EXPENSE),
         CategoryEntity(profileId = profileId, name = "Sueldo", emoji = "💼", colorArgb = 0xFF4DB6AC.toInt(), type = MovementType.INCOME),
