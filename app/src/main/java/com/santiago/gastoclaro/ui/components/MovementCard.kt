@@ -75,6 +75,7 @@ fun MovementCard(
                         movement.categoryName,
                         movement.subcategoryName.takeIf { it.isNotBlank() },
                         if (movement.currency == "USD") movement.currencyAmountCents.formatUsdCurrency() else null,
+                        if (movement.isRecurringMonthly) "Mensual" else null,
                         paymentLabel,
                         if (movement.installmentCount > 1) "Cuota ${movement.installmentIndex}/${movement.installmentCount}" else null,
                         LocalDate.ofEpochDay(movement.occurredEpochDay).formatDate()

@@ -162,6 +162,20 @@ fun MovementFormScreen(
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
+                if (state.canUseRecurringMonthly) {
+                    FilterChip(
+                        selected = state.isRecurringMonthly,
+                        onClick = { viewModel.setRecurringMonthly(!state.isRecurringMonthly) },
+                        label = { Text("Pago mensual") }
+                    )
+                    if (state.isRecurringMonthly) {
+                        Text(
+                            "Se crearán pagos mensuales automáticos durante 36 meses.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
                 Box(modifier = Modifier.fillMaxWidth()) {
                     OutlinedButton(
                         onClick = { categoryExpanded = true },
@@ -239,20 +253,7 @@ fun MovementFormScreen(
                 if (state.type == MovementType.EXPENSE) {
                     val selectedPaymentMethod = state.paymentMethods.firstOrNull { it.id == state.selectedPaymentMethodId }
                     val canUseInstallments = selectedPaymentMethod?.kind == "CREDIT_CARD"
-                    Text("Impacto mensual", style = MaterialTheme.typography.titleMedium)
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                        FilterChip(
-                            selected = state.annualizedMonths == 1 && state.installmentCount == 1,
-                            onClick = { viewModel.setAnnualizedMonths(1) },
-                            label = { Text("Pago normal") }
-                        )
-                        FilterChip(
-                            selected = state.annualizedMonths == 12,
-                            onClick = { viewModel.setAnnualizedMonths(12) },
-                            label = { Text("Anual / 12") }
-                        )
-                    }
-                    if (state.movementId == null) {
+                    if (state.movementId == null && !state.isRecurringMonthly) {
                         Text("Cuotas", style = MaterialTheme.typography.titleMedium)
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                             listOf(1, 3, 6, 12).forEach { count ->
@@ -274,13 +275,6 @@ fun MovementFormScreen(
                     } else if (state.installmentCount > 1) {
                         Text(
                             "Cuota ${state.installmentIndex}/${state.installmentCount}: editás solo este movimiento.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    if (state.annualizedMonths > 1) {
-                        Text(
-                            "Se guarda el pago real, pero el resumen mensual usa 1/${state.annualizedMonths} del monto.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

@@ -48,6 +48,8 @@ data class MovementFormUiState(
     val annualizedMonths: Int = 1,
     val installmentIndex: Int = 1,
     val installmentCount: Int = 1,
+    val isRecurringMonthly: Boolean = false,
+    val canUseRecurringMonthly: Boolean = false,
     val isSaving: Boolean = false,
     val isLoading: Boolean = false
 )
@@ -87,6 +89,7 @@ class MovementFormViewModel @Inject constructor(
         val selectedCategory = availableCategories.firstOrNull { it.id == selected }
         val availableSubcategories = selectedCategory.subcategoriesForCategory()
         val selectedSubcategory = latest.selectedSubcategoryName.takeIf { it in availableSubcategories } ?: ""
+        val canUseRecurring = latest.type == MovementType.EXPENSE && selectedCategory?.name == "Suscripciones" && latest.movementId == null
         val convertedAmount = latest.convertedAmount()
         val selectedPayment = if (latest.useNoPaymentMethod) {
             null
@@ -98,6 +101,8 @@ class MovementFormViewModel @Inject constructor(
             selectedCategoryId = selected,
             selectedSubcategoryName = selectedSubcategory,
             subcategories = availableSubcategories,
+            isRecurringMonthly = latest.isRecurringMonthly && canUseRecurring,
+            canUseRecurringMonthly = canUseRecurring,
             convertedAmountCents = convertedAmount,
             paymentMethods = availablePaymentMethods,
             selectedPaymentMethodId = selectedPayment
@@ -127,6 +132,7 @@ class MovementFormViewModel @Inject constructor(
                         annualizedMonths = movement.annualizedMonths,
                         installmentIndex = movement.installmentIndex,
                         installmentCount = movement.installmentCount,
+                        isRecurringMonthly = movement.isRecurringMonthly,
                         isLoading = false
                     )
                 }
@@ -146,7 +152,7 @@ class MovementFormViewModel @Inject constructor(
         }
     }
 
-    fun setType(type: MovementType) { form.value = form.value.copy(type = type, selectedCategoryId = null, selectedSubcategoryName = "") }
+    fun setType(type: MovementType) { form.value = form.value.copy(type = type, selectedCategoryId = null, selectedSubcategoryName = "", isRecurringMonthly = false) }
     fun setAmount(value: String) { form.value = form.value.copy(amountText = formatMoneyInput(value)) }
     fun setCurrency(value: String) {
         val currency = value.takeIf { it == "ARS" || it == "USD" } ?: "ARS"
@@ -158,8 +164,15 @@ class MovementFormViewModel @Inject constructor(
     fun setExchangeRate(value: String) { form.value = form.value.copy(exchangeRateText = formatMoneyInput(value)) }
     fun setNote(value: String) { form.value = form.value.copy(note = value.take(120)) }
     fun setDate(value: LocalDate) { form.value = form.value.copy(occurredOn = value) }
-    fun setCategory(id: Long) { form.value = form.value.copy(selectedCategoryId = id, selectedSubcategoryName = "") }
+    fun setCategory(id: Long) { form.value = form.value.copy(selectedCategoryId = id, selectedSubcategoryName = "", isRecurringMonthly = false) }
     fun setSubcategory(value: String) { form.value = form.value.copy(selectedSubcategoryName = value.take(60)) }
+    fun setRecurringMonthly(value: Boolean) {
+        form.value = form.value.copy(
+            isRecurringMonthly = value,
+            annualizedMonths = 1,
+            installmentCount = if (value) 1 else form.value.installmentCount
+        )
+    }
     fun setPaymentMethod(id: Long?) {
         val selected = form.value.paymentMethods.firstOrNull { it.id == id }
         form.value = form.value.copy(
@@ -167,9 +180,6 @@ class MovementFormViewModel @Inject constructor(
             useNoPaymentMethod = id == null,
             installmentCount = if (selected?.kind == "CREDIT_CARD") form.value.installmentCount else 1
         )
-    }
-    fun setAnnualizedMonths(value: Int) {
-        form.value = form.value.copy(annualizedMonths = value.coerceIn(1, 60), installmentCount = 1)
     }
     fun setInstallmentCount(value: Int) {
         form.value = form.value.copy(installmentCount = value.coerceIn(1, 60), annualizedMonths = 1)
@@ -198,6 +208,10 @@ class MovementFormViewModel @Inject constructor(
             events.tryEmit(MovementFormEvent.Error("Las cuotas requieren una tarjeta de crédito"))
             return
         }
+        if (state.isRecurringMonthly && !state.canUseRecurringMonthly) {
+            events.tryEmit(MovementFormEvent.Error("El pago mensual solo está disponible para Suscripciones"))
+            return
+        }
         viewModelScope.launch {
             form.value = form.value.copy(isSaving = true)
             runCatching {
@@ -213,9 +227,10 @@ class MovementFormViewModel @Inject constructor(
                         exchangeRateCents = exchangeRate,
                         type = state.type,
                         amountCents = amount,
-                        monthlyImpactCents = monthlyImpactFor(amount, state.type, state.annualizedMonths),
-                        annualizedMonths = if (state.type == MovementType.EXPENSE && state.installmentCount == 1) state.annualizedMonths else 1,
+                        monthlyImpactCents = amount,
+                        annualizedMonths = 1,
                         installmentCount = if (state.type == MovementType.EXPENSE && state.movementId == null) state.installmentCount else 1,
+                        isRecurringMonthly = state.isRecurringMonthly,
                         note = state.note,
                         occurredOn = state.occurredOn
                     )
@@ -227,11 +242,6 @@ class MovementFormViewModel @Inject constructor(
             }
             form.value = form.value.copy(isSaving = false)
         }
-    }
-
-    private fun monthlyImpactFor(amount: Long, type: MovementType, months: Int): Long {
-        if (type != MovementType.EXPENSE || months <= 1) return amount
-        return ((amount + months - 1) / months).coerceAtLeast(1)
     }
 
     private fun MovementFormUiState.convertedAmount(): Long? {

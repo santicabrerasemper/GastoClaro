@@ -24,6 +24,8 @@ import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 
+private const val RECURRING_MONTHS_TO_CREATE = 36
+
 @Singleton
 class FinanceRepositoryImpl @Inject constructor(
     private val database: AppDatabase
@@ -84,6 +86,9 @@ class FinanceRepositoryImpl @Inject constructor(
         if (draft.installmentCount > 1 && paymentMethod?.kind != "CREDIT_CARD") {
             throw DomainException("Las cuotas requieren una tarjeta de crédito")
         }
+        if (draft.isRecurringMonthly && (draft.installmentCount > 1 || draft.annualizedMonths > 1)) {
+            throw DomainException("El pago mensual no se puede combinar con cuotas o anualización")
+        }
         val normalizedCurrency = draft.currency.uppercase().takeIf { it == "ARS" || it == "USD" }
             ?: throw DomainException("Elegí una moneda válida")
         if (normalizedCurrency == "USD" && (draft.exchangeRateCents == null || draft.exchangeRateCents <= 0)) {
@@ -102,7 +107,44 @@ class FinanceRepositoryImpl @Inject constructor(
         )
 
         if (draft.id == null) {
-            if (draft.type == MovementType.EXPENSE && draft.installmentCount > 1) {
+            if (draft.type == MovementType.EXPENSE && draft.isRecurringMonthly) {
+                val groupId = UUID.randomUUID().toString()
+                var firstId = 0L
+                repeat(RECURRING_MONTHS_TO_CREATE) { index ->
+                    val recurringDate = draft.occurredOn.plusMonths(index.toLong())
+                    val period = recurringDate.toYearMonth()
+                    if (closureDao.get(draft.profileId, period.year, period.monthValue) != null) {
+                        throw DomainException("Un pago mensual cae en un mes cerrado")
+                    }
+                    budgetDao.insertIgnore(
+                        MonthlyBudgetEntity(
+                            profileId = draft.profileId,
+                            year = period.year,
+                            month = period.monthValue,
+                            initialAmountCents = 0,
+                            updatedAt = now
+                        )
+                    )
+                    val inserted = movementDao.insert(
+                        draft.toEntity(
+                            amountCents = draft.amountCents,
+                            monthlyImpactCents = draft.amountCents,
+                            annualizedMonths = 1,
+                            occurredOn = recurringDate,
+                            now = now,
+                            installmentGroupId = null,
+                            installmentIndex = 1,
+                            installmentCount = 1,
+                            isRecurringMonthly = true,
+                            recurringGroupId = groupId,
+                            currencyAmountCents = draft.currencyAmountCents,
+                            originalAmountCents = draft.amountCents
+                        )
+                    )
+                    if (index == 0) firstId = inserted
+                }
+                firstId
+            } else if (draft.type == MovementType.EXPENSE && draft.installmentCount > 1) {
                 val groupId = UUID.randomUUID().toString()
                 val base = draft.amountCents / draft.installmentCount
                 val remainder = draft.amountCents % draft.installmentCount
@@ -136,6 +178,8 @@ class FinanceRepositoryImpl @Inject constructor(
                             installmentGroupId = groupId,
                             installmentIndex = index + 1,
                             installmentCount = draft.installmentCount,
+                            isRecurringMonthly = false,
+                            recurringGroupId = null,
                             currencyAmountCents = installmentCurrencyAmount,
                             originalAmountCents = draft.amountCents
                         )
@@ -154,6 +198,8 @@ class FinanceRepositoryImpl @Inject constructor(
                         installmentGroupId = null,
                         installmentIndex = 1,
                         installmentCount = 1,
+                        isRecurringMonthly = false,
+                        recurringGroupId = null,
                         currencyAmountCents = draft.currencyAmountCents,
                         originalAmountCents = draft.amountCents
                     )
@@ -180,6 +226,8 @@ class FinanceRepositoryImpl @Inject constructor(
                 installmentGroupId = previous.installmentGroupId,
                 installmentIndex = previous.installmentIndex,
                 installmentCount = previous.installmentCount,
+                isRecurringMonthly = previous.isRecurringMonthly,
+                recurringGroupId = previous.recurringGroupId,
                 originalAmountCents = previous.originalAmountCents,
                 note = draft.note.trim(),
                 occurredEpochDay = draft.occurredOn.toEpochDay(),
@@ -362,6 +410,7 @@ class FinanceRepositoryImpl @Inject constructor(
         if (draft.installmentCount > 1 && draft.annualizedMonths > 1) {
             throw DomainException("Elegí cuotas o anualización, no ambas")
         }
+        if (draft.isRecurringMonthly && draft.type != MovementType.EXPENSE) throw DomainException("El pago mensual solo aplica a gastos")
         if (draft.currencyAmountCents <= 0) throw DomainException("Ingresá un monto mayor a cero")
         if (draft.subcategoryName.length > 60) throw DomainException("La subcategoría puede tener hasta 60 caracteres")
         if (draft.note.length > 120) throw DomainException("La nota puede tener hasta 120 caracteres")
@@ -376,6 +425,8 @@ class FinanceRepositoryImpl @Inject constructor(
         installmentGroupId: String?,
         installmentIndex: Int,
         installmentCount: Int,
+        isRecurringMonthly: Boolean,
+        recurringGroupId: String?,
         currencyAmountCents: Long,
         originalAmountCents: Long
     ): MovementEntity = MovementEntity(
@@ -393,6 +444,8 @@ class FinanceRepositoryImpl @Inject constructor(
         installmentGroupId = installmentGroupId,
         installmentIndex = installmentIndex,
         installmentCount = installmentCount,
+        isRecurringMonthly = isRecurringMonthly,
+        recurringGroupId = recurringGroupId,
         originalAmountCents = originalAmountCents,
         note = note.trim(),
         occurredEpochDay = occurredOn.toEpochDay(),

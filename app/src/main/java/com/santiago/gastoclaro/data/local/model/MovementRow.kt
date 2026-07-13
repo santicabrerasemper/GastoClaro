@@ -18,6 +18,8 @@ data class MovementRow(
     val installmentGroupId: String?,
     val installmentIndex: Int,
     val installmentCount: Int,
+    val isRecurringMonthly: Boolean,
+    val recurringGroupId: String?,
     val originalAmountCents: Long,
     val note: String,
     val occurredEpochDay: Long,

@@ -17,6 +17,7 @@ data class MovementDraft(
     val monthlyImpactCents: Long,
     val annualizedMonths: Int,
     val installmentCount: Int,
+    val isRecurringMonthly: Boolean = false,
     val note: String,
     val occurredOn: LocalDate
 )

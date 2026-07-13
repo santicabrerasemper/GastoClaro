@@ -45,6 +45,8 @@ data class MovementEntity(
     val installmentGroupId: String? = null,
     val installmentIndex: Int = 1,
     val installmentCount: Int = 1,
+    val isRecurringMonthly: Boolean = false,
+    val recurringGroupId: String? = null,
     val originalAmountCents: Long = amountCents,
     val note: String,
     val occurredEpochDay: Long,
