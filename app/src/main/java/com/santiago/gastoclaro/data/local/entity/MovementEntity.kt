@@ -36,7 +36,7 @@ data class MovementEntity(
     val paymentMethodId: Long? = null,
     val subcategoryName: String = "",
     val currency: String = "ARS",
-    val currencyAmountCents: Long = amountCents,
+    val currencyAmountCents: Long = 0,
     val exchangeRateCents: Long? = null,
     val type: MovementType,
     val amountCents: Long,

@@ -28,6 +28,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.santiago.gastoclaro.core.util.formatCurrency
 import com.santiago.gastoclaro.core.util.formatDate
+import com.santiago.gastoclaro.core.util.formatUsdCurrency
 import com.santiago.gastoclaro.data.local.entity.MovementType
 import com.santiago.gastoclaro.data.local.model.MovementRow
 import java.time.LocalDate
@@ -73,6 +74,7 @@ fun MovementCard(
                     listOfNotNull(
                         movement.categoryName,
                         movement.subcategoryName.takeIf { it.isNotBlank() },
+                        if (movement.currency == "USD") movement.currencyAmountCents.formatUsdCurrency() else null,
                         paymentLabel,
                         if (movement.installmentCount > 1) "Cuota ${movement.installmentIndex}/${movement.installmentCount}" else null,
                         LocalDate.ofEpochDay(movement.occurredEpochDay).formatDate()

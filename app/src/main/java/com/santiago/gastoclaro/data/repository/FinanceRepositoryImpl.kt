@@ -106,9 +106,12 @@ class FinanceRepositoryImpl @Inject constructor(
                 val groupId = UUID.randomUUID().toString()
                 val base = draft.amountCents / draft.installmentCount
                 val remainder = draft.amountCents % draft.installmentCount
+                val currencyBase = draft.currencyAmountCents / draft.installmentCount
+                val currencyRemainder = draft.currencyAmountCents % draft.installmentCount
                 var firstId = 0L
                 repeat(draft.installmentCount) { index ->
                     val installmentAmount = base + if (index < remainder) 1 else 0
+                    val installmentCurrencyAmount = currencyBase + if (index < currencyRemainder) 1 else 0
                     val installmentDate = draft.occurredOn.plusMonths(index.toLong())
                     val period = installmentDate.toYearMonth()
                     if (closureDao.get(draft.profileId, period.year, period.monthValue) != null) {
@@ -133,6 +136,7 @@ class FinanceRepositoryImpl @Inject constructor(
                             installmentGroupId = groupId,
                             installmentIndex = index + 1,
                             installmentCount = draft.installmentCount,
+                            currencyAmountCents = installmentCurrencyAmount,
                             originalAmountCents = draft.amountCents
                         )
                     )
@@ -150,6 +154,7 @@ class FinanceRepositoryImpl @Inject constructor(
                         installmentGroupId = null,
                         installmentIndex = 1,
                         installmentCount = 1,
+                        currencyAmountCents = draft.currencyAmountCents,
                         originalAmountCents = draft.amountCents
                     )
                 )
@@ -371,6 +376,7 @@ class FinanceRepositoryImpl @Inject constructor(
         installmentGroupId: String?,
         installmentIndex: Int,
         installmentCount: Int,
+        currencyAmountCents: Long,
         originalAmountCents: Long
     ): MovementEntity = MovementEntity(
         profileId = profileId,
