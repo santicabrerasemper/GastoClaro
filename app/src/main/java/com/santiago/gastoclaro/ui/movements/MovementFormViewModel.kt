@@ -9,10 +9,12 @@ import com.santiago.gastoclaro.core.util.parseMoneyToCents
 import com.santiago.gastoclaro.data.local.entity.CategoryEntity
 import com.santiago.gastoclaro.data.local.entity.MovementType
 import com.santiago.gastoclaro.data.local.entity.PaymentMethodEntity
+import com.santiago.gastoclaro.data.local.entity.SavingGoalEntity
 import com.santiago.gastoclaro.data.preferences.ActiveProfileStore
 import com.santiago.gastoclaro.domain.model.MovementDraft
 import com.santiago.gastoclaro.domain.repository.FinanceRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -45,6 +47,7 @@ data class MovementFormUiState(
     val categories: List<CategoryEntity> = emptyList(),
     val subcategories: List<String> = emptyList(),
     val paymentMethods: List<PaymentMethodEntity> = emptyList(),
+    val savingGoals: List<SavingGoalEntity> = emptyList(),
     val annualizedMonths: Int = 1,
     val installmentIndex: Int = 1,
     val installmentCount: Int = 1,
@@ -76,14 +79,16 @@ class MovementFormViewModel @Inject constructor(
     )
     val events = MutableSharedFlow<MovementFormEvent>(extraBufferCapacity = 1)
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     private val categories = form
         .map { it.type }
         .distinctUntilChanged()
         .flatMapLatest { type -> financeRepository.observeCategories(profileId, type) }
 
     private val paymentMethods = financeRepository.observePaymentMethods(profileId)
+    private val savingGoals = financeRepository.observeSavingGoals(profileId)
 
-    val uiState: StateFlow<MovementFormUiState> = combine(form, categories, paymentMethods) { latest, availableCategories, availablePaymentMethods ->
+    val uiState: StateFlow<MovementFormUiState> = combine(form, categories, paymentMethods, savingGoals) { latest, availableCategories, availablePaymentMethods, availableSavingGoals ->
         val selected = latest.selectedCategoryId?.takeIf { id -> availableCategories.any { it.id == id } }
             ?: availableCategories.firstOrNull()?.id
         val selectedCategory = availableCategories.firstOrNull { it.id == selected }
@@ -105,6 +110,7 @@ class MovementFormViewModel @Inject constructor(
             canUseRecurringMonthly = canUseRecurring,
             convertedAmountCents = convertedAmount,
             paymentMethods = availablePaymentMethods,
+            savingGoals = availableSavingGoals,
             selectedPaymentMethodId = selectedPayment
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), form.value)

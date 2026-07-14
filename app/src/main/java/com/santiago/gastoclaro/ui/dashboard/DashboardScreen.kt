@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -15,10 +16,15 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.CreditCard
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Remove
+import androidx.compose.material.icons.rounded.Savings
+import androidx.compose.material.icons.rounded.Today
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -54,11 +60,11 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.santiago.gastoclaro.core.util.formatCurrency
+import com.santiago.gastoclaro.core.util.formatDate
 import com.santiago.gastoclaro.core.util.formatMoneyInput
 import com.santiago.gastoclaro.core.util.formatPlainAmount
 import com.santiago.gastoclaro.core.util.parseMoneyToCents
 import com.santiago.gastoclaro.data.local.entity.MovementType
-import com.santiago.gastoclaro.ui.components.DonutChart
 import com.santiago.gastoclaro.ui.components.EmptyState
 import com.santiago.gastoclaro.ui.components.MonthSelector
 import com.santiago.gastoclaro.ui.components.MovementCard
@@ -71,6 +77,8 @@ fun DashboardScreen(
     onAddMovement: (MovementType) -> Unit,
     onOpenMovement: (Long) -> Unit,
     onOpenMovements: () -> Unit,
+    onOpenPayments: () -> Unit,
+    onOpenSummaries: () -> Unit,
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -133,6 +141,17 @@ fun DashboardScreen(
                     enabled = !state.isClosed
                 )
             }
+            if (state.needsSetup()) {
+                item {
+                    SetupCard(
+                        state = state,
+                        onEditBudget = { showBudgetDialog = true },
+                        onOpenPayments = onOpenPayments,
+                        onOpenSummaries = onOpenSummaries,
+                        onAddExpense = { onAddMovement(MovementType.EXPENSE) }
+                    )
+                }
+            }
             item {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Button(
@@ -165,13 +184,11 @@ fun DashboardScreen(
                 }
             }
             item {
-                Card {
-                    Column(modifier = Modifier.fillMaxWidth().padding(18.dp)) {
-                        Text("¿En qué gastaste?", style = MaterialTheme.typography.titleLarge)
-                        Spacer(Modifier.height(14.dp))
-                        DonutChart(state.categoryTotals)
-                    }
-                }
+                TodayCard(
+                    state = state,
+                    onOpenPayments = onOpenPayments,
+                    onOpenSummaries = onOpenSummaries
+                )
             }
             item {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
@@ -213,6 +230,117 @@ fun DashboardScreen(
     }
 }
 
+private fun DashboardUiState.needsSetup(): Boolean =
+    summary.initialCents == 0L || paymentMethods.isEmpty() || savingGoals.isEmpty() || recentMovements.isEmpty()
+
+@Composable
+private fun SetupCard(
+    state: DashboardUiState,
+    onEditBudget: () -> Unit,
+    onOpenPayments: () -> Unit,
+    onOpenSummaries: () -> Unit,
+    onAddExpense: () -> Unit
+) {
+    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)) {
+        Column(modifier = Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text("Puesta a punto", style = MaterialTheme.typography.titleLarge)
+            Text(
+                "Completa lo basico para que saldos, resumenes y metas trabajen con datos reales.",
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            SetupRow(state.summary.initialCents > 0, "Presupuesto inicial", "Cargar", onEditBudget)
+            SetupRow(state.paymentMethods.isNotEmpty(), "Medios de pago", "Agregar", onOpenPayments)
+            SetupRow(state.savingGoals.isNotEmpty(), "Primera meta de ahorro", "Crear", onOpenSummaries)
+            SetupRow(state.recentMovements.isNotEmpty(), "Primer movimiento", "Registrar", onAddExpense)
+        }
+    }
+}
+
+@Composable
+private fun SetupRow(done: Boolean, label: String, action: String, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+            AssistChip(onClick = {}, label = { Text(if (done) "Listo" else "Pendiente") })
+            Text(label)
+        }
+        TextButton(onClick = onClick) {
+            Text(action)
+            Icon(Icons.AutoMirrored.Rounded.ArrowForward, contentDescription = null)
+        }
+    }
+}
+
+@Composable
+private fun TodayCard(
+    state: DashboardUiState,
+    onOpenPayments: () -> Unit,
+    onOpenSummaries: () -> Unit
+) {
+    Card {
+        Column(modifier = Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text("Para mirar hoy", style = MaterialTheme.typography.titleLarge)
+            QuickFact(
+                icon = Icons.Rounded.CreditCard,
+                title = "Tarjetas",
+                value = if (state.nextCardEvents.isEmpty()) "Sin cierres cargados" else "${state.nextCardEvents.size} proximos eventos",
+                onClick = onOpenPayments
+            )
+            state.nextCardEvents.forEach { event ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(event.title, fontWeight = FontWeight.SemiBold)
+                        Text(event.kind, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
+                    }
+                    Text(event.date.formatDate(), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+            QuickFact(
+                icon = Icons.Rounded.Savings,
+                title = "Ahorro del mes",
+                value = state.summary.savingCents.formatCurrency(),
+                onClick = onOpenSummaries
+            )
+            QuickFact(
+                icon = Icons.Rounded.Today,
+                title = "Analisis mensual",
+                value = "Ver porcentajes, metas y tarjetas",
+                onClick = onOpenSummaries
+            )
+        }
+    }
+}
+
+@Composable
+private fun QuickFact(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    value: String,
+    onClick: () -> Unit
+) {
+    TextButton(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(icon, contentDescription = null)
+            Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.Start) {
+                Text(title, fontWeight = FontWeight.SemiBold)
+                Text(value, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Icon(Icons.AutoMirrored.Rounded.ArrowForward, contentDescription = null)
+        }
+    }
+}
+
 @Composable
 private fun BalanceCard(
     balance: Long,
@@ -243,15 +371,23 @@ private fun BalanceCard(
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Column {
-                    Text("Saldo disponible", color = mutedForeground)
-                    Text(balance.formatCurrency(), style = MaterialTheme.typography.headlineLarge, color = foreground)
-                }
-                OutlinedButton(onClick = onEditBudget, enabled = enabled) {
+                Text("Saldo disponible", color = mutedForeground, modifier = Modifier.weight(1f).padding(end = 12.dp))
+                OutlinedButton(
+                    onClick = onEditBudget,
+                    enabled = enabled,
+                    modifier = Modifier.widthIn(min = 104.dp),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+                ) {
                     Icon(Icons.Rounded.Edit, contentDescription = null)
                     Text("Base")
                 }
             }
+            Text(
+                balance.formatCurrency(),
+                style = MaterialTheme.typography.headlineLarge,
+                color = foreground,
+                maxLines = 1
+            )
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     MiniStat("Inicial", initial.formatCurrency(), foreground, mutedForeground, Modifier.weight(1f))

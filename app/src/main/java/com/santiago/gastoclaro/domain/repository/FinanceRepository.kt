@@ -5,6 +5,7 @@ import com.santiago.gastoclaro.data.local.entity.MonthlyBudgetEntity
 import com.santiago.gastoclaro.data.local.entity.MonthlyClosureEntity
 import com.santiago.gastoclaro.data.local.entity.MovementType
 import com.santiago.gastoclaro.data.local.entity.PaymentMethodEntity
+import com.santiago.gastoclaro.data.local.entity.SavingGoalEntity
 import com.santiago.gastoclaro.data.local.model.ClosureWithSnapshots
 import com.santiago.gastoclaro.data.local.model.MovementRow
 import com.santiago.gastoclaro.domain.model.MovementDraft
@@ -21,10 +22,13 @@ interface FinanceRepository {
     fun observeMovementsBetween(profileId: Long, start: LocalDate, end: LocalDate): Flow<List<MovementRow>>
     fun observeClosures(profileId: Long): Flow<List<MonthlyClosureEntity>>
     fun observeClosure(profileId: Long, period: YearMonth): Flow<ClosureWithSnapshots?>
+    fun observeSavingGoals(profileId: Long): Flow<List<SavingGoalEntity>>
 
     suspend fun getMovement(profileId: Long, movementId: Long): MovementRow?
     suspend fun saveMovement(draft: MovementDraft): Long
     suspend fun savePaymentMethod(entity: PaymentMethodEntity): Long
+    suspend fun saveSavingGoal(entity: SavingGoalEntity): Long
+    suspend fun archiveSavingGoal(profileId: Long, goalId: Long)
     suspend fun archivePaymentMethod(profileId: Long, paymentMethodId: Long)
     suspend fun deleteMovement(profileId: Long, movementId: Long)
     suspend fun updateBudget(profileId: Long, period: YearMonth, amountCents: Long)

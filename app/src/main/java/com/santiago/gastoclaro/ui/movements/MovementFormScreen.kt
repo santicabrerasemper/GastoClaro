@@ -73,6 +73,7 @@ fun MovementFormScreen(
     var categoryExpanded by rememberSaveable { mutableStateOf(false) }
     var subcategoryExpanded by rememberSaveable { mutableStateOf(false) }
     var paymentExpanded by rememberSaveable { mutableStateOf(false) }
+    var savingGoalExpanded by rememberSaveable { mutableStateOf(false) }
     var showDatePicker by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(initialType, state.movementId) {
@@ -299,10 +300,40 @@ fun MovementFormScreen(
                     Text("Fecha: ${state.occurredOn.formatDate()}", modifier = Modifier.weight(1f))
                     Icon(Icons.Rounded.CalendarMonth, contentDescription = null)
                 }
+                if (state.type == MovementType.SAVING && state.savingGoals.isNotEmpty()) {
+                    Box(modifier = Modifier.fillMaxWidth()) {
+                        OutlinedButton(
+                            onClick = { savingGoalExpanded = true },
+                            modifier = Modifier.fillMaxWidth().height(56.dp)
+                        ) {
+                            Text(
+                                state.note.ifBlank { "Elegir meta" },
+                                modifier = Modifier.weight(1f)
+                            )
+                            Icon(Icons.Rounded.KeyboardArrowDown, contentDescription = null)
+                        }
+                        DropdownMenu(expanded = savingGoalExpanded, onDismissRequest = { savingGoalExpanded = false }) {
+                            state.savingGoals.forEach { goal ->
+                                DropdownMenuItem(
+                                    text = { Text(goal.name) },
+                                    onClick = {
+                                        viewModel.setNote(goal.name)
+                                        savingGoalExpanded = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
                 OutlinedTextField(
                     value = state.note,
                     onValueChange = viewModel::setNote,
-                    label = { Text("Nota opcional") },
+                    label = { Text(if (state.type == MovementType.SAVING) "Meta de ahorro" else "Nota opcional") },
+                    placeholder = {
+                        if (state.type == MovementType.SAVING) {
+                            Text("Auto, Viaje, Emergencia...")
+                        }
+                    },
                     supportingText = { Text("${state.note.length}/120") },
                     minLines = 2,
                     modifier = Modifier.fillMaxWidth()

@@ -9,6 +9,7 @@ import com.santiago.gastoclaro.data.local.dao.ClosureDao
 import com.santiago.gastoclaro.data.local.dao.MovementDao
 import com.santiago.gastoclaro.data.local.dao.PaymentMethodDao
 import com.santiago.gastoclaro.data.local.dao.ProfileDao
+import com.santiago.gastoclaro.data.local.dao.SavingGoalDao
 import com.santiago.gastoclaro.data.local.entity.CategoryEntity
 import com.santiago.gastoclaro.data.local.entity.MonthlyBudgetEntity
 import com.santiago.gastoclaro.data.local.entity.MonthlyCategorySnapshotEntity
@@ -16,6 +17,7 @@ import com.santiago.gastoclaro.data.local.entity.MonthlyClosureEntity
 import com.santiago.gastoclaro.data.local.entity.MovementEntity
 import com.santiago.gastoclaro.data.local.entity.PaymentMethodEntity
 import com.santiago.gastoclaro.data.local.entity.ProfileEntity
+import com.santiago.gastoclaro.data.local.entity.SavingGoalEntity
 
 @Database(
     entities = [
@@ -25,9 +27,10 @@ import com.santiago.gastoclaro.data.local.entity.ProfileEntity
         MovementEntity::class,
         PaymentMethodEntity::class,
         MonthlyClosureEntity::class,
-        MonthlyCategorySnapshotEntity::class
+        MonthlyCategorySnapshotEntity::class,
+        SavingGoalEntity::class
     ],
-    version = 13,
+    version = 14,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -38,4 +41,5 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun movementDao(): MovementDao
     abstract fun paymentMethodDao(): PaymentMethodDao
     abstract fun closureDao(): ClosureDao
+    abstract fun savingGoalDao(): SavingGoalDao
 }

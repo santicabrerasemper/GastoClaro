@@ -72,6 +72,7 @@ fun PaymentMethodsScreen(
     val snackbar = remember { SnackbarHostState() }
     var showDialog by rememberSaveable { mutableStateOf(false) }
     var editing by remember { mutableStateOf<PaymentMethodEntity?>(null) }
+    var archiveTarget by remember { mutableStateOf<PaymentMethodEntity?>(null) }
     var expandedStatementId by rememberSaveable { mutableStateOf<Long?>(null) }
 
     LaunchedEffect(Unit) {
@@ -97,7 +98,8 @@ fun PaymentMethodsScreen(
                 title = "Sin medios de pago",
                 message = "Agrega tarjetas, cuentas o efectivo para ordenar tus gastos.",
                 actionLabel = "Agregar medio",
-                onAction = { showDialog = true }
+                onAction = { showDialog = true },
+                modifier = Modifier.padding(innerPadding)
             )
         } else {
             LazyColumn(
@@ -123,7 +125,7 @@ fun PaymentMethodsScreen(
                             editing = method
                             showDialog = true
                         },
-                        onArchive = { viewModel.archive(method.id) }
+                        onArchive = { archiveTarget = method }
                     )
                 }
             }
@@ -138,6 +140,21 @@ fun PaymentMethodsScreen(
                 viewModel.save(editing?.id, name, kind, digits, closing, due)
                 showDialog = false
             }
+        )
+    }
+
+    archiveTarget?.let { method ->
+        AlertDialog(
+            onDismissRequest = { archiveTarget = null },
+            title = { Text("Archivar medio") },
+            text = { Text("Se va a ocultar ${method.displayName()} para nuevos movimientos. Los movimientos ya cargados no se pierden.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.archive(method.id)
+                    archiveTarget = null
+                }) { Text("Archivar") }
+            },
+            dismissButton = { TextButton(onClick = { archiveTarget = null }) { Text("Cancelar") } }
         )
     }
 }

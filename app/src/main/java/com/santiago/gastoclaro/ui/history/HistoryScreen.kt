@@ -3,6 +3,7 @@ package com.santiago.gastoclaro.ui.history
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -36,16 +37,16 @@ fun HistoryScreen(
     val closures by viewModel.closures.collectAsStateWithLifecycle()
     if (closures.isEmpty()) {
         EmptyState(
-            emoji = "🗓️",
-            title = "Todavía no hay meses cerrados",
-            message = "Cuando termine un mes, la app guardará automáticamente su resumen en este historial.",
+            emoji = "📅",
+            title = "Todavia no hay meses cerrados",
+            message = "Cuando termine un mes, la app guardara automaticamente su resumen en este historial.",
             modifier = Modifier.fillMaxSize()
         )
         return
     }
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
+        contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item { Text("Historial mensual", style = MaterialTheme.typography.headlineMedium) }
@@ -59,7 +60,10 @@ fun HistoryScreen(
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(period.displayName(), style = MaterialTheme.typography.titleLarge)
-                        Text("${closure.movementCount} movimientos · Gastos ${closure.expenseCents.formatCurrency()}", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(
+                            "${closure.movementCount} movimientos · Gastos ${closure.expenseCents.formatCurrency()} · Ahorro ${closure.savingCents.formatCurrency()}",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                     Column(horizontalAlignment = Alignment.End) {
                         Text("Saldo final", style = MaterialTheme.typography.bodySmall)

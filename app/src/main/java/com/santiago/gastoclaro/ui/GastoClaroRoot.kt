@@ -84,7 +84,6 @@ private val bottomItems = listOf(
     BottomItem(Routes.Movements, "Mov.", Icons.Rounded.ReceiptLong),
     BottomItem(Routes.Payments, "Med.", Icons.Rounded.CreditCard),
     BottomItem(Routes.Summaries, "Res.", Icons.Rounded.PieChart),
-    BottomItem(Routes.History, "Hist.", Icons.Rounded.History),
     BottomItem(Routes.Profiles, "Perf.", Icons.Rounded.People)
 )
 
@@ -195,7 +194,9 @@ fun GastoClaroRoot(viewModel: AppViewModel = hiltViewModel()) {
                     onOpenMovement = { id ->
                         appState.activeProfileId?.let { navController.navigate(Routes.movementForm(it, id)) }
                     },
-                    onOpenMovements = { navController.navigate(Routes.Movements) }
+                    onOpenMovements = { navController.navigate(Routes.Movements) },
+                    onOpenPayments = { navController.navigate(Routes.Payments) },
+                    onOpenSummaries = { navController.navigate(Routes.Summaries) }
                 )
             }
             composable(Routes.Movements) {
@@ -213,7 +214,11 @@ fun GastoClaroRoot(viewModel: AppViewModel = hiltViewModel()) {
                 PaymentMethodsScreen()
             }
             composable(Routes.Summaries) {
-                SummariesScreen()
+                SummariesScreen(
+                    onOpenMonth = { period ->
+                        appState.activeProfileId?.let { navController.navigate(Routes.historyDetail(it, period)) }
+                    }
+                )
             }
             composable(Routes.History) {
                 HistoryScreen(

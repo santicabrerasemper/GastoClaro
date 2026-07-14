@@ -9,6 +9,7 @@ import com.santiago.gastoclaro.data.local.entity.MonthlyClosureEntity
 import com.santiago.gastoclaro.data.local.entity.MovementEntity
 import com.santiago.gastoclaro.data.local.entity.MovementType
 import com.santiago.gastoclaro.data.local.entity.PaymentMethodEntity
+import com.santiago.gastoclaro.data.local.entity.SavingGoalEntity
 import com.santiago.gastoclaro.data.local.model.ClosureWithSnapshots
 import com.santiago.gastoclaro.data.local.model.MovementRow
 import com.santiago.gastoclaro.domain.model.DomainException
@@ -35,6 +36,7 @@ class FinanceRepositoryImpl @Inject constructor(
     private val movementDao = database.movementDao()
     private val paymentMethodDao = database.paymentMethodDao()
     private val closureDao = database.closureDao()
+    private val savingGoalDao = database.savingGoalDao()
 
     override fun observeBudget(profileId: Long, period: YearMonth): Flow<MonthlyBudgetEntity?> =
         budgetDao.observe(profileId, period.year, period.monthValue)
@@ -59,6 +61,9 @@ class FinanceRepositoryImpl @Inject constructor(
 
     override fun observeClosure(profileId: Long, period: YearMonth): Flow<ClosureWithSnapshots?> =
         closureDao.observeWithSnapshots(profileId, period.year, period.monthValue)
+
+    override fun observeSavingGoals(profileId: Long): Flow<List<SavingGoalEntity>> =
+        savingGoalDao.observeActive(profileId)
 
     override suspend fun getMovement(profileId: Long, movementId: Long): MovementRow? =
         movementDao.getRow(profileId, movementId)
@@ -297,6 +302,34 @@ class FinanceRepositoryImpl @Inject constructor(
     override suspend fun archivePaymentMethod(profileId: Long, paymentMethodId: Long) = database.withTransaction {
         val current = paymentMethodDao.getById(profileId, paymentMethodId) ?: return@withTransaction
         paymentMethodDao.update(current.copy(isArchived = true, updatedAt = System.currentTimeMillis()))
+    }
+
+    override suspend fun saveSavingGoal(entity: SavingGoalEntity): Long = database.withTransaction {
+        val cleanName = entity.name.trim()
+        if (entity.profileId <= 0) throw DomainException("Selecciona un perfil")
+        if (cleanName.length < 2) throw DomainException("La meta necesita un nombre")
+        if (cleanName.length > 40) throw DomainException("La meta puede tener hasta 40 caracteres")
+        if (entity.targetCents <= 0) throw DomainException("Ingresá un objetivo mayor a cero")
+        val now = System.currentTimeMillis()
+        val normalized = entity.copy(
+            name = cleanName,
+            targetCents = entity.targetCents,
+            createdAt = if (entity.id == 0L) now else entity.createdAt,
+            updatedAt = now
+        )
+        if (normalized.id == 0L) {
+            savingGoalDao.insert(normalized)
+        } else {
+            val previous = savingGoalDao.getById(normalized.profileId, normalized.id)
+                ?: throw DomainException("La meta ya no existe")
+            savingGoalDao.update(normalized.copy(createdAt = previous.createdAt))
+            normalized.id
+        }
+    }
+
+    override suspend fun archiveSavingGoal(profileId: Long, goalId: Long) = database.withTransaction {
+        val current = savingGoalDao.getById(profileId, goalId) ?: return@withTransaction
+        savingGoalDao.update(current.copy(isArchived = true, updatedAt = System.currentTimeMillis()))
     }
 
     override suspend fun updateBudget(profileId: Long, period: YearMonth, amountCents: Long) = database.withTransaction {
