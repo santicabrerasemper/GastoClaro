@@ -51,6 +51,7 @@ class DashboardViewModel @Inject constructor(
                 financeRepository.observeClosure(profileId, period)
             ) { budget, movements, budgetMovements, closure ->
                 val income = movements.filter { it.type == MovementType.INCOME }.sumOf { it.amountCents }
+                val saving = movements.filter { it.type == MovementType.SAVING }.sumOf { it.amountCents }
                 val expenseRows = budgetMovements.filter { it.type == MovementType.EXPENSE && it.impacts(period) }
                 val expense = expenseRows.sumOf { it.monthlyImpactCents }
                 val totals = expenseRows
@@ -63,7 +64,7 @@ class DashboardViewModel @Inject constructor(
                 DashboardUiState(
                     profileId = profileId,
                     period = period,
-                    summary = MonthlySummary(budget?.initialAmountCents ?: 0, income, expense),
+                    summary = MonthlySummary(budget?.initialAmountCents ?: 0, income, expense, saving),
                     categoryTotals = totals,
                     recentMovements = movements.take(5),
                     isClosed = closure != null,

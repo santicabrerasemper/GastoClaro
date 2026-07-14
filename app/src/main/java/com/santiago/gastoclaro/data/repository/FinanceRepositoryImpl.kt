@@ -353,6 +353,7 @@ class FinanceRepositoryImpl @Inject constructor(
         val start = period.startEpochDay()
         val end = period.endEpochDay()
         val income = movementDao.sumForPeriod(profileId, MovementType.INCOME, start, end)
+        val saving = movementDao.sumForPeriod(profileId, MovementType.SAVING, start, end)
         val expenseRows = movementDao
             .getRowsBetween(profileId, period.minusMonths(59).startEpochDay(), end)
             .filter { it.type == MovementType.EXPENSE && it.impacts(period) }
@@ -366,7 +367,8 @@ class FinanceRepositoryImpl @Inject constructor(
                 initialAmountCents = budget.initialAmountCents,
                 incomeCents = income,
                 expenseCents = expense,
-                balanceCents = budget.initialAmountCents + income - expense,
+                savingCents = saving,
+                balanceCents = budget.initialAmountCents + income - expense - saving,
                 movementCount = count,
                 closedAt = System.currentTimeMillis(),
                 closureOrigin = origin

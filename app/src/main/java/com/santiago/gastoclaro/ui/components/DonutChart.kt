@@ -66,6 +66,7 @@ fun DonutChart(
         }
         Spacer(Modifier.height(16.dp))
         items.take(6).forEach { item ->
+            val percent = item.amountCents.toDouble() / total.toDouble() * 100.0
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -76,9 +77,12 @@ fun DonutChart(
                     Spacer(Modifier.width(8.dp))
                     Text("${item.categoryEmoji} ${item.categoryName}")
                 }
-                Text(item.amountCents.formatCurrency(), fontWeight = FontWeight.SemiBold)
+                Text("${percent.formatPercent()} · ${item.amountCents.formatCurrency()}", fontWeight = FontWeight.SemiBold)
             }
             Spacer(Modifier.height(8.dp))
         }
     }
 }
+
+private fun Double.formatPercent(): String =
+    if (this >= 10.0) "${toInt()}%" else "%.1f%%".format(this)

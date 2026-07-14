@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.LockOpen
@@ -33,6 +34,7 @@ import com.santiago.gastoclaro.core.util.displayName
 import com.santiago.gastoclaro.core.util.formatCurrency
 import com.santiago.gastoclaro.data.local.model.CategoryTotalRow
 import com.santiago.gastoclaro.ui.components.DonutChart
+import com.santiago.gastoclaro.ui.components.MovementCard
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -41,7 +43,7 @@ fun HistoryDetailScreen(
     onReopened: () -> Unit,
     viewModel: HistoryDetailViewModel = hiltViewModel()
 ) {
-    val data by viewModel.closure.collectAsStateWithLifecycle()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
     LaunchedEffect(Unit) {
         viewModel.events.collect {
@@ -58,13 +60,14 @@ fun HistoryDetailScreen(
         },
         snackbarHost = { SnackbarHost(snackbar) }
     ) { innerPadding ->
+        val data = state.closure
         val closure = data?.closure
         if (closure == null) {
             Column(modifier = Modifier.fillMaxSize().padding(innerPadding).padding(24.dp)) {
                 Text("El mes ya no está cerrado.")
             }
         } else {
-            val categories = data?.categories.orEmpty().mapIndexed { index, item ->
+            val categories = data.categories.mapIndexed { index, item ->
                 CategoryTotalRow(index.toLong(), item.categoryName, item.categoryEmoji, item.colorArgb, item.amountCents)
             }
             LazyColumn(
@@ -79,6 +82,7 @@ fun HistoryDetailScreen(
                             SummaryRow("Presupuesto inicial", closure.initialAmountCents.formatCurrency())
                             SummaryRow("Ingresos", closure.incomeCents.formatCurrency())
                             SummaryRow("Gastos", closure.expenseCents.formatCurrency())
+                            SummaryRow("Ahorro", closure.savingCents.formatCurrency())
                             SummaryRow("Saldo final", closure.balanceCents.formatCurrency())
                             SummaryRow("Movimientos", closure.movementCount.toString())
                         }
@@ -91,6 +95,20 @@ fun HistoryDetailScreen(
                             DonutChart(categories, modifier = Modifier.padding(top = 12.dp))
                         }
                     }
+                }
+                item {
+                    Card {
+                        Column(modifier = Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text("Gastos del mes", style = MaterialTheme.typography.titleLarge)
+                            Text(
+                                "${state.expenses.size} gastos registrados",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+                items(state.expenses, key = { it.id }) { movement ->
+                    MovementCard(movement = movement, onClick = null)
                 }
                 item {
                     Button(onClick = viewModel::reopen, modifier = Modifier.fillMaxWidth()) {

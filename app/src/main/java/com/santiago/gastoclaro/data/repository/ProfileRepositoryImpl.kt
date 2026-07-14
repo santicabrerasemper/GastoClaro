@@ -83,7 +83,8 @@ class ProfileRepositoryImpl @Inject constructor(
         CategoryEntity(profileId = profileId, name = "Otros", emoji = "🧾", colorArgb = 0xFF90A4AE.toInt(), type = MovementType.EXPENSE),
         CategoryEntity(profileId = profileId, name = "Sueldo", emoji = "💼", colorArgb = 0xFF4DB6AC.toInt(), type = MovementType.INCOME),
         CategoryEntity(profileId = profileId, name = "Extra", emoji = "✨", colorArgb = 0xFF7986CB.toInt(), type = MovementType.INCOME),
-        CategoryEntity(profileId = profileId, name = "Reintegro", emoji = "↩️", colorArgb = 0xFFAED581.toInt(), type = MovementType.INCOME)
+        CategoryEntity(profileId = profileId, name = "Reintegro", emoji = "↩️", colorArgb = 0xFFAED581.toInt(), type = MovementType.INCOME),
+        CategoryEntity(profileId = profileId, name = "Ahorro", emoji = "💰", colorArgb = 0xFFFFD54F.toInt(), type = MovementType.SAVING)
     )
     private fun defaultPaymentMethods(profileId: Long, now: Long): List<PaymentMethodEntity> = listOf(
         PaymentMethodEntity(profileId = profileId, name = "Efectivo", kind = "CASH", createdAt = now, updatedAt = now),

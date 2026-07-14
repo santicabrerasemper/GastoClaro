@@ -11,6 +11,7 @@ import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.People
+import androidx.compose.material.icons.rounded.PieChart
 import androidx.compose.material.icons.rounded.ReceiptLong
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
@@ -35,6 +36,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -55,12 +57,14 @@ import com.santiago.gastoclaro.ui.movements.MovementFormScreen
 import com.santiago.gastoclaro.ui.movements.MovementsScreen
 import com.santiago.gastoclaro.ui.payments.PaymentMethodsScreen
 import com.santiago.gastoclaro.ui.profiles.ProfilesScreen
+import com.santiago.gastoclaro.ui.summaries.SummariesScreen
 import java.time.YearMonth
 
 private object Routes {
     const val Dashboard = "dashboard"
     const val Movements = "movements"
     const val Payments = "payments"
+    const val Summaries = "summaries"
     const val History = "history"
     const val Profiles = "profiles"
     const val MovementForm = "movement_form/{profileId}/{movementId}?type={type}"
@@ -76,11 +80,12 @@ private object Routes {
 private data class BottomItem(val route: String, val label: String, val icon: androidx.compose.ui.graphics.vector.ImageVector)
 
 private val bottomItems = listOf(
-    BottomItem(Routes.Dashboard, "Inicio", Icons.Rounded.Home),
-    BottomItem(Routes.Movements, "Movs.", Icons.Rounded.ReceiptLong),
-    BottomItem(Routes.Payments, "Medios", Icons.Rounded.CreditCard),
-    BottomItem(Routes.History, "Historial", Icons.Rounded.History),
-    BottomItem(Routes.Profiles, "Perfiles", Icons.Rounded.People)
+    BottomItem(Routes.Dashboard, "Ini.", Icons.Rounded.Home),
+    BottomItem(Routes.Movements, "Mov.", Icons.Rounded.ReceiptLong),
+    BottomItem(Routes.Payments, "Med.", Icons.Rounded.CreditCard),
+    BottomItem(Routes.Summaries, "Res.", Icons.Rounded.PieChart),
+    BottomItem(Routes.History, "Hist.", Icons.Rounded.History),
+    BottomItem(Routes.Profiles, "Perf.", Icons.Rounded.People)
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -133,6 +138,7 @@ fun GastoClaroRoot(viewModel: AppViewModel = hiltViewModel()) {
                                 Routes.Dashboard -> "GastoClaro"
                                 Routes.Movements -> "Movimientos"
                                 Routes.Payments -> "Medios"
+                                Routes.Summaries -> "Resumenes"
                                 Routes.History -> "Historial"
                                 Routes.Profiles -> "Perfiles"
                                 else -> "GastoClaro"
@@ -167,7 +173,8 @@ fun GastoClaroRoot(viewModel: AppViewModel = hiltViewModel()) {
                                 }
                             },
                             icon = { Icon(item.icon, contentDescription = item.label) },
-                            label = { Text(item.label) }
+                            label = { Text(item.label, maxLines = 1, overflow = TextOverflow.Clip) },
+                            alwaysShowLabel = true
                         )
                     }
                 }
@@ -204,6 +211,9 @@ fun GastoClaroRoot(viewModel: AppViewModel = hiltViewModel()) {
             }
             composable(Routes.Payments) {
                 PaymentMethodsScreen()
+            }
+            composable(Routes.Summaries) {
+                SummariesScreen()
             }
             composable(Routes.History) {
                 HistoryScreen(

@@ -107,7 +107,11 @@ class MovementsViewModel @Inject constructor(
             paymentMethods = sourceValue.paymentMethods,
             movements = filtered,
             totalVisibleCents = filtered.sumOf {
-                if (it.type == MovementType.EXPENSE) -it.monthlyImpactCents else it.amountCents
+                when (it.type) {
+                    MovementType.EXPENSE -> -it.monthlyImpactCents
+                    MovementType.SAVING -> -it.amountCents
+                    MovementType.INCOME -> it.amountCents
+                }
             },
             isClosed = sourceValue.isClosed
         )

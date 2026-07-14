@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -48,6 +49,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -126,6 +128,7 @@ fun DashboardScreen(
                     initial = state.summary.initialCents,
                     income = state.summary.incomeCents,
                     expense = state.summary.expenseCents,
+                    saving = state.summary.savingCents,
                     onEditBudget = { showBudgetDialog = true },
                     enabled = !state.isClosed
                 )
@@ -135,18 +138,29 @@ fun DashboardScreen(
                     Button(
                         onClick = { onAddMovement(MovementType.EXPENSE) },
                         enabled = !state.isClosed,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 10.dp)
                     ) {
                         Icon(Icons.Rounded.Remove, contentDescription = null)
-                        Text("Gasto")
+                        Text("Gasto", maxLines = 1, fontSize = 13.sp)
                     }
                     FilledTonalButton(
                         onClick = { onAddMovement(MovementType.INCOME) },
                         enabled = !state.isClosed,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 10.dp)
                     ) {
                         Icon(Icons.Rounded.Add, contentDescription = null)
-                        Text("Ingreso")
+                        Text("Ingreso", maxLines = 1, fontSize = 13.sp)
+                    }
+                    FilledTonalButton(
+                        onClick = { onAddMovement(MovementType.SAVING) },
+                        enabled = !state.isClosed,
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 10.dp)
+                    ) {
+                        Icon(Icons.Rounded.Add, contentDescription = null)
+                        Text("Ahorro", maxLines = 1, fontSize = 13.sp)
                     }
                 }
             }
@@ -205,6 +219,7 @@ private fun BalanceCard(
     initial: Long,
     income: Long,
     expense: Long,
+    saving: Long,
     onEditBudget: () -> Unit,
     enabled: Boolean
 ) {
@@ -237,20 +252,25 @@ private fun BalanceCard(
                     Text("Base")
                 }
             }
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                MiniStat("Inicial", initial.formatCurrency(), foreground, mutedForeground)
-                MiniStat("Ingresos", income.formatCurrency(), foreground, mutedForeground)
-                MiniStat("Gastos", expense.formatCurrency(), foreground, mutedForeground)
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    MiniStat("Inicial", initial.formatCurrency(), foreground, mutedForeground, Modifier.weight(1f))
+                    MiniStat("Ingresos", income.formatCurrency(), foreground, mutedForeground, Modifier.weight(1f))
+                }
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    MiniStat("Gastos", expense.formatCurrency(), foreground, mutedForeground, Modifier.weight(1f))
+                    MiniStat("Ahorro", saving.formatCurrency(), foreground, mutedForeground, Modifier.weight(1f))
+                }
             }
         }
     }
 }
 
 @Composable
-private fun MiniStat(label: String, value: String, foreground: Color, mutedForeground: Color) {
-    Column {
+private fun MiniStat(label: String, value: String, foreground: Color, mutedForeground: Color, modifier: Modifier = Modifier) {
+    Column(modifier = modifier) {
         Text(label, color = mutedForeground, style = MaterialTheme.typography.bodySmall)
-        Text(value, color = foreground, fontWeight = FontWeight.SemiBold)
+        Text(value, color = foreground, fontWeight = FontWeight.SemiBold, maxLines = 1, fontSize = 14.sp)
     }
 }
 

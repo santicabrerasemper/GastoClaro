@@ -307,6 +307,26 @@ object DatabaseModule {
         }
     }
 
+    private val MIGRATION_12_13 = object : Migration(12, 13) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE monthly_closures ADD COLUMN savingCents INTEGER NOT NULL DEFAULT 0")
+            db.execSQL(
+                """
+                INSERT INTO categories (profileId, name, emoji, colorArgb, type, isArchived)
+                SELECT profiles.id, 'Ahorro', '💰', -1097, 'SAVING', 0
+                FROM profiles
+                WHERE NOT EXISTS (
+                    SELECT 1
+                    FROM categories
+                    WHERE categories.profileId = profiles.id
+                      AND categories.name = 'Ahorro'
+                      AND categories.type = 'SAVING'
+                )
+                """.trimIndent()
+            )
+        }
+    }
+
     @Provides
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): AppDatabase =
@@ -325,6 +345,7 @@ object DatabaseModule {
             MIGRATION_8_9,
             MIGRATION_9_10,
             MIGRATION_10_11,
-            MIGRATION_11_12
+            MIGRATION_11_12,
+            MIGRATION_12_13
         ).build()
 }

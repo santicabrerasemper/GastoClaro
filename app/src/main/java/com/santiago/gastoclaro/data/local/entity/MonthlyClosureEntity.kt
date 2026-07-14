@@ -28,6 +28,7 @@ data class MonthlyClosureEntity(
     val initialAmountCents: Long,
     val incomeCents: Long,
     val expenseCents: Long,
+    val savingCents: Long = 0,
     val balanceCents: Long,
     val movementCount: Int,
     val closedAt: Long,

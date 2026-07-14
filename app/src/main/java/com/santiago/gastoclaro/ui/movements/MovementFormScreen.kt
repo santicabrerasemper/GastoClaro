@@ -123,6 +123,11 @@ fun MovementFormScreen(
                         onClick = { viewModel.setType(MovementType.INCOME) },
                         label = { Text("Ingreso") }
                     )
+                    FilterChip(
+                        selected = state.type == MovementType.SAVING,
+                        onClick = { viewModel.setType(MovementType.SAVING) },
+                        label = { Text("Ahorro") }
+                    )
                 }
                 OutlinedTextField(
                     value = state.amountText,

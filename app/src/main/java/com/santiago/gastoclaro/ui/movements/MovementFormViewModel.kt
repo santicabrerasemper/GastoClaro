@@ -89,7 +89,7 @@ class MovementFormViewModel @Inject constructor(
         val selectedCategory = availableCategories.firstOrNull { it.id == selected }
         val availableSubcategories = selectedCategory.subcategoriesForCategory()
         val selectedSubcategory = latest.selectedSubcategoryName.takeIf { it in availableSubcategories } ?: ""
-        val canUseRecurring = latest.type == MovementType.EXPENSE && selectedCategory?.name == "Suscripciones" && latest.movementId == null
+        val canUseRecurring = latest.type == MovementType.EXPENSE && latest.movementId == null
         val convertedAmount = latest.convertedAmount()
         val selectedPayment = if (latest.useNoPaymentMethod) {
             null
@@ -209,7 +209,7 @@ class MovementFormViewModel @Inject constructor(
             return
         }
         if (state.isRecurringMonthly && !state.canUseRecurringMonthly) {
-            events.tryEmit(MovementFormEvent.Error("El pago mensual solo está disponible para Suscripciones"))
+            events.tryEmit(MovementFormEvent.Error("El pago mensual solo está disponible para gastos nuevos"))
             return
         }
         viewModelScope.launch {
@@ -253,7 +253,7 @@ class MovementFormViewModel @Inject constructor(
     }
 
     private fun CategoryEntity?.subcategoriesForCategory(): List<String> = when (this?.name) {
-        "Comida" -> listOf("Pedidos Ya", "Supermercado", "Salidas a comer")
+        "Comida" -> listOf("Delivery", "Supermercado", "Salidas a comer")
         "Transporte" -> listOf("Nafta", "Seguro del auto")
         else -> emptyList()
     }

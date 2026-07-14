@@ -86,11 +86,16 @@ fun MovementCard(
             }
             Spacer(Modifier.width(2.dp))
             Column(horizontalAlignment = Alignment.End) {
+                val isNegative = movement.type == MovementType.EXPENSE || movement.type == MovementType.SAVING
                 Text(
-                    text = (if (movement.type == MovementType.EXPENSE) "-" else "+") + movement.amountCents.formatCurrency(),
+                    text = (if (isNegative) "-" else "+") + movement.amountCents.formatCurrency(),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = if (movement.type == MovementType.EXPENSE) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+                    color = when (movement.type) {
+                        MovementType.EXPENSE -> MaterialTheme.colorScheme.error
+                        MovementType.SAVING -> MaterialTheme.colorScheme.tertiary
+                        MovementType.INCOME -> MaterialTheme.colorScheme.primary
+                    }
                 )
                 if (movement.type == MovementType.EXPENSE && movement.annualizedMonths > 1) {
                     Text(
